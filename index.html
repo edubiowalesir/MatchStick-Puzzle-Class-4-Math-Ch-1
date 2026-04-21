@@ -138,6 +138,58 @@
           </p>
         </div>
       </section>
+
+      <section class="playground">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Third Puzzle</p>
+            <h2>Use 5 matchsticks to make 2 triangles</h2>
+          </div>
+          <p id="five-status-text" class="status-text">
+            First count the 5 matchsticks, then click show answer.
+          </p>
+        </div>
+
+        <div class="practice-layout">
+          <div class="hero-card">
+            <div class="card-header">
+              <span>5 matchsticks</span>
+              <span class="tag">Count them</span>
+            </div>
+            <svg
+              id="five-match-figure"
+              class="match-scene"
+              viewBox="0 0 220 260"
+              aria-label="Five separate matchsticks"
+            ></svg>
+          </div>
+
+          <div class="practice-box">
+            <div class="practice-title">Draw it in the space provided</div>
+            <svg
+              id="five-match-answer"
+              class="match-scene"
+              viewBox="0 0 760 260"
+              aria-label="Two triangles sharing one side"
+            ></svg>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button id="five-reset-btn" type="button">Reset</button>
+          <button id="five-answer-btn" type="button" class="secondary">
+            Show answer
+          </button>
+        </div>
+
+        <div id="five-solution-note" class="solution-note" hidden>
+          <h3>Answer: 2 triangles sharing one side</h3>
+          <p>
+            With 5 matchsticks, two small triangles can be made by sharing the
+            middle side.
+          </p>
+        </div>
+      </section>
     </main>
 
     <script src="script.js"></script>

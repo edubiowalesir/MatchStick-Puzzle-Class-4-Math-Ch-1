@@ -107,6 +107,39 @@ select {
   gap: 20px;
 }
 
+.practice-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 20px;
+  align-items: stretch;
+}
+
+.practice-box {
+  background: rgba(238, 226, 231, 0.82);
+  border: 6px dashed rgba(128, 44, 36, 0.86);
+  border-radius: 18px;
+  padding: 16px;
+  min-height: 260px;
+}
+
+.practice-title {
+  text-align: center;
+  font-family: "Baloo 2", cursive;
+  font-size: 1.6rem;
+  color: #6c3920;
+  margin-bottom: 4px;
+}
+
+.practice-placeholder {
+  font-family: "Baloo 2", cursive;
+  font-size: 1.25rem;
+  fill: rgba(125, 92, 67, 0.6);
+}
+
+#five-target-layer {
+  transition: opacity 220ms ease;
+}
+
 .card-header {
   display: flex;
   justify-content: space-between;
@@ -340,6 +373,10 @@ button:active {
   }
 
   .two-up {
+    grid-template-columns: 1fr;
+  }
+
+  .practice-layout {
     grid-template-columns: 1fr;
   }
 }

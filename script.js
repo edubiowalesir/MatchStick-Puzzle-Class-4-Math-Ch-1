@@ -82,6 +82,12 @@ const removeResetBtn = document.getElementById("remove-reset-btn");
 const removeAnswerBtn = document.getElementById("remove-answer-btn");
 const removeStatusText = document.getElementById("remove-status-text");
 const removeSolutionNote = document.getElementById("remove-solution-note");
+const fiveMatchFigure = document.getElementById("five-match-figure");
+const fiveMatchAnswer = document.getElementById("five-match-answer");
+const fiveResetBtn = document.getElementById("five-reset-btn");
+const fiveAnswerBtn = document.getElementById("five-answer-btn");
+const fiveStatusText = document.getElementById("five-status-text");
+const fiveSolutionNote = document.getElementById("five-solution-note");
 
 const state = {
   placed: new Set()
@@ -89,6 +95,28 @@ const state = {
 
 const removeState = {
   removed: new Set()
+};
+
+const fiveStartSticks = [
+  stickFromPoints(220, 210, 220, 110, "f1"),
+  stickFromPoints(290, 210, 290, 110, "f2"),
+  stickFromPoints(360, 210, 360, 110, "f3"),
+  stickFromPoints(430, 210, 430, 110, "f4"),
+  stickFromPoints(500, 210, 500, 110, "f5")
+];
+
+const fiveTargets = {
+  f1: stickFromPoints(280, 210, 380, 210, "f1"),
+  f2: stickFromPoints(380, 210, 480, 210, "f2"),
+  f3: stickFromPoints(380, 90, 280, 210, "f3"),
+  f4: stickFromPoints(380, 90, 380, 210, "f4"),
+  f5: stickFromPoints(380, 90, 480, 210, "f5")
+};
+
+const fiveIds = Object.keys(fiveTargets);
+
+const fiveState = {
+  placed: new Set()
 };
 
 function createSvgEl(name, attrs = {}) {
@@ -231,6 +259,183 @@ function renderRemoveOriginalFigure() {
   removeOriginalSticks.forEach((stick) => {
     removeOriginalFigure.append(createMatchstick(stick));
   });
+}
+
+function renderFiveMatchFigure() {
+  addDefs(fiveMatchFigure);
+  fiveMatchFigure.append(
+    createSvgEl("rect", {
+      x: "0",
+      y: "0",
+      width: "220",
+      height: "260",
+      fill: "transparent"
+    })
+  );
+
+  const verticals = [
+    stickFromPoints(40, 42, 40, 192),
+    stickFromPoints(76, 42, 76, 192),
+    stickFromPoints(112, 42, 112, 192),
+    stickFromPoints(148, 42, 148, 192),
+    stickFromPoints(184, 42, 184, 192)
+  ];
+
+  verticals.forEach((stick) => {
+    fiveMatchFigure.append(createMatchstick(stick));
+  });
+}
+
+function renderFiveMatchAnswer() {
+  addDefs(fiveMatchAnswer);
+  fiveMatchAnswer.append(
+    createSvgEl("rect", {
+      x: "0",
+      y: "0",
+      width: "760",
+      height: "260",
+      fill: "transparent"
+    })
+  );
+
+  const placeholder = createSvgEl("text", {
+    x: "380",
+    y: "132",
+    class: "practice-placeholder",
+    "text-anchor": "middle",
+    id: "five-placeholder"
+  });
+  placeholder.textContent = "Click the 5 glowing matchsticks below to build 2 triangles";
+  fiveMatchAnswer.append(placeholder);
+
+  const title = createSvgEl("text", {
+    x: "380",
+    y: "34",
+    class: "face-label",
+    "text-anchor": "middle"
+  });
+  title.textContent = "Two Triangles Sharing One Side";
+  fiveMatchAnswer.append(title);
+
+  const targetLayer = createSvgEl("g", { id: "five-target-layer" });
+  fiveIds.forEach((id, index) => {
+    const target = fiveTargets[id];
+    const midX = (target.ax + target.bx) / 2;
+    const midY = (target.ay + target.by) / 2;
+
+    targetLayer.append(
+      createSvgEl("line", {
+        class: "target-slot",
+        x1: String(target.ax),
+        y1: String(target.ay),
+        x2: String(target.bx),
+        y2: String(target.by)
+      })
+    );
+    targetLayer.append(
+      createSvgEl("circle", {
+        class: "target-ring",
+        cx: String(midX),
+        cy: String(midY - 26),
+        r: "14"
+      })
+    );
+    const label = createSvgEl("text", {
+      class: "target-number",
+      x: String(midX),
+      y: String(midY - 21),
+      "text-anchor": "middle"
+    });
+    label.textContent = String(index + 1);
+    targetLayer.append(label);
+  });
+  fiveMatchAnswer.append(targetLayer);
+
+  const faceLeft = createSvgEl("polygon", {
+    class: "face-fill",
+    points: "280,210 380,90 380,210",
+    fill: "rgba(245, 196, 116, 0.35)",
+    stroke: "rgba(190, 132, 47, 0.55)"
+  });
+  const faceRight = createSvgEl("polygon", {
+    class: "face-fill",
+    points: "380,90 380,210 480,210",
+    fill: "rgba(230, 173, 94, 0.32)",
+    stroke: "rgba(180, 115, 33, 0.55)"
+  });
+
+  const faceLayer = createSvgEl("g", {
+    id: "five-face-layer",
+    class: "solved-illustration"
+  });
+  faceLayer.append(faceLeft, faceRight);
+  fiveMatchAnswer.append(faceLayer);
+
+  const looseLayer = createSvgEl("g", { id: "five-loose-layer" });
+  fiveStartSticks.forEach((stick) => {
+    looseLayer.append(createMatchstick(stick, { movable: true }));
+  });
+  fiveMatchAnswer.append(looseLayer);
+}
+
+function resetFivePuzzle() {
+  fiveState.placed.clear();
+  fiveMatchAnswer.querySelector("#five-face-layer").classList.remove("visible");
+  fiveMatchAnswer.querySelector("#five-placeholder").style.opacity = "1";
+  fiveMatchAnswer.querySelector("#five-target-layer").style.opacity = "1";
+  fiveMatchAnswer.querySelectorAll("#five-loose-layer .match").forEach((match) => {
+    const start = fiveStartSticks.find((stick) => stick.id === match.dataset.id);
+    setMatchPosition(match, start);
+    match.classList.remove("active");
+  });
+  fiveStatusText.textContent = "Click the 5 glowing matchsticks to build 2 triangles.";
+  fiveSolutionNote.hidden = true;
+}
+
+function showFiveAnswer() {
+  resetFivePuzzle();
+  fiveIds.forEach((id) => {
+    setMatchPosition(getFiveMatchById(id), fiveTargets[id]);
+    fiveState.placed.add(id);
+  });
+  fiveMatchAnswer.querySelector("#five-face-layer").classList.add("visible");
+  fiveMatchAnswer.querySelector("#five-placeholder").style.opacity = "0";
+  fiveMatchAnswer.querySelector("#five-target-layer").style.opacity = "0";
+  fiveStatusText.textContent = "Shown: 2 triangles are made by sharing the middle side.";
+  fiveSolutionNote.hidden = false;
+}
+
+function updateFiveStatus() {
+  if (fiveState.placed.size === fiveIds.length) {
+    fiveStatusText.textContent = "Solved! You used 5 matchsticks to make 2 triangles.";
+  } else {
+    fiveStatusText.textContent = `Click ${fiveIds.length - fiveState.placed.size} more glowing matchstick${fiveIds.length - fiveState.placed.size === 1 ? "" : "s"} to build 2 triangles.`;
+  }
+}
+
+function checkFiveSolved() {
+  if (fiveState.placed.size !== fiveIds.length) {
+    return;
+  }
+
+  fiveMatchAnswer.querySelector("#five-face-layer").classList.add("visible");
+  fiveMatchAnswer.querySelector("#five-placeholder").style.opacity = "0";
+  fiveMatchAnswer.querySelector("#five-target-layer").style.opacity = "0";
+  fiveSolutionNote.hidden = false;
+  updateFiveStatus();
+}
+
+function handleFiveBoardClick(event) {
+  const match = event.target.closest("#five-loose-layer .match.movable");
+  if (!match || fiveState.placed.has(match.dataset.id)) {
+    return;
+  }
+
+  setMatchPosition(match, fiveTargets[match.dataset.id]);
+  match.classList.add("active");
+  fiveState.placed.add(match.dataset.id);
+  updateFiveStatus();
+  checkFiveSolved();
 }
 
 function addBoardDecor() {
@@ -461,6 +666,10 @@ function getRemoveMatchById(id) {
   return removeBoard.querySelector(`.match[data-id="${id}"]`);
 }
 
+function getFiveMatchById(id) {
+  return fiveMatchAnswer.querySelector(`.match[data-id="${id}"]`);
+}
+
 function updateStatus() {
   if (state.placed.size === movableIds.length) {
     statusText.textContent = "Solved! The answer is a 3D tetrahedron with 4 triangular faces.";
@@ -590,6 +799,9 @@ updateStatus();
 renderRemoveOriginalFigure();
 addRemoveBoardDecor();
 updateRemoveStatus();
+renderFiveMatchFigure();
+renderFiveMatchAnswer();
+resetFivePuzzle();
 
 board.addEventListener("click", handleBoardClick);
 resetBtn.addEventListener("click", resetBoard);
@@ -597,3 +809,6 @@ answerBtn.addEventListener("click", showAnswer);
 removeBoard.addEventListener("click", handleRemoveBoardClick);
 removeResetBtn.addEventListener("click", resetRemoveBoard);
 removeAnswerBtn.addEventListener("click", showRemoveAnswer);
+fiveMatchAnswer.addEventListener("click", handleFiveBoardClick);
+fiveResetBtn.addEventListener("click", resetFivePuzzle);
+fiveAnswerBtn.addEventListener("click", showFiveAnswer);
