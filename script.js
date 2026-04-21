@@ -1,814 +1,946 @@
-const SVG_NS = "http://www.w3.org/2000/svg";
+(function () {
+  const svg = document.getElementById("shapeStage");
+  const slider = document.getElementById("foldSlider");
+  const title = document.getElementById("shapeTitle");
+  const typeLabel = document.getElementById("shapeTypeLabel");
+  const facesCount = document.getElementById("facesCount");
+  const edgesCount = document.getElementById("edgesCount");
+  const verticesCount = document.getElementById("verticesCount");
+  const netType = document.getElementById("netType");
+  const promptList = document.getElementById("promptList");
+  const prismButtons = document.getElementById("prismButtons");
+  const pyramidButtons = document.getElementById("pyramidButtons");
+  const resetViewButton = document.getElementById("resetViewButton");
 
-function stickFromPoints(ax, ay, bx, by, id) {
-  return {
-    id,
-    ax,
-    ay,
-    bx,
-    by
+  const SVG_NS = "http://www.w3.org/2000/svg";
+
+  const state = {
+    currentId: "triangular-prism",
+    fold: 1,
+    rotationX: -0.65,
+    rotationY: 0.82,
+    drag: null,
   };
-}
 
-function scaleStick(stick, factor, dx = 0, dy = 0) {
-  return stickFromPoints(
-    stick.ax * factor + dx,
-    stick.ay * factor + dy,
-    stick.bx * factor + dx,
-    stick.by * factor + dy,
-    stick.id
-  );
-}
+  const familyTint = {
+    "Prism Family": "rgba(113, 147, 216, 0.08)",
+    "Pyramid Family": "rgba(223, 100, 165, 0.08)",
+  };
 
-const staticFigureSticks = [
-  stickFromPoints(46, 182, 90, 106),
-  stickFromPoints(90, 106, 134, 182),
-  stickFromPoints(46, 182, 134, 182),
-  stickFromPoints(190, 182, 234, 106),
-  stickFromPoints(234, 106, 278, 182),
-  stickFromPoints(190, 182, 278, 182),
-  stickFromPoints(334, 182, 378, 106),
-  stickFromPoints(378, 106, 422, 182),
-  stickFromPoints(334, 182, 422, 182)
-];
-
-const boardStart = [
-  stickFromPoints(92, 278, 136, 202, "m1"),
-  stickFromPoints(136, 202, 180, 278, "m2"),
-  stickFromPoints(92, 278, 180, 278, "m3"),
-  stickFromPoints(248, 278, 292, 202, "m4"),
-  stickFromPoints(292, 202, 336, 278, "m5"),
-  stickFromPoints(248, 278, 336, 278, "m6"),
-  stickFromPoints(404, 278, 448, 202, "m7"),
-  stickFromPoints(448, 202, 492, 278, "m8"),
-  stickFromPoints(404, 278, 492, 278, "m9")
-];
-
-const movableTargets = {
-  m1: stickFromPoints(248, 190, 324, 146, "m1"),
-  m8: stickFromPoints(324, 146, 400, 190, "m8")
-};
-
-const movableIds = Object.keys(movableTargets);
-
-const removeOriginalSticks = [
-  stickFromPoints(55, 42, 125, 42, "r1"),
-  stickFromPoints(55, 42, 90, 102, "r2"),
-  stickFromPoints(125, 42, 90, 102, "r3"),
-  stickFromPoints(90, 102, 178, 102, "r4"),
-  stickFromPoints(90, 102, 55, 162, "r5"),
-  stickFromPoints(55, 162, 125, 162, "r6"),
-  stickFromPoints(90, 102, 125, 162, "r7"),
-  stickFromPoints(212, 102, 177, 162, "r8"),
-  stickFromPoints(177, 162, 247, 162, "r9"),
-  stickFromPoints(212, 102, 247, 162, "r10"),
-  stickFromPoints(292, 102, 257, 162, "r11"),
-  stickFromPoints(257, 162, 327, 162, "r12"),
-  stickFromPoints(292, 102, 327, 162, "r13")
-];
-
-const removeBoardSticks = removeOriginalSticks.map((stick) => scaleStick(stick, 1.3, 35, 18));
-const removeIds = ["r1", "r2", "r3", "r4"];
-
-const originalFigure = document.getElementById("original-figure");
-const board = document.getElementById("interactive-board");
-const resetBtn = document.getElementById("reset-btn");
-const answerBtn = document.getElementById("answer-btn");
-const statusText = document.getElementById("status-text");
-const solutionNote = document.getElementById("solution-note");
-const removeOriginalFigure = document.getElementById("remove-original-figure");
-const removeBoard = document.getElementById("remove-board");
-const removeResetBtn = document.getElementById("remove-reset-btn");
-const removeAnswerBtn = document.getElementById("remove-answer-btn");
-const removeStatusText = document.getElementById("remove-status-text");
-const removeSolutionNote = document.getElementById("remove-solution-note");
-const fiveMatchFigure = document.getElementById("five-match-figure");
-const fiveMatchAnswer = document.getElementById("five-match-answer");
-const fiveResetBtn = document.getElementById("five-reset-btn");
-const fiveAnswerBtn = document.getElementById("five-answer-btn");
-const fiveStatusText = document.getElementById("five-status-text");
-const fiveSolutionNote = document.getElementById("five-solution-note");
-
-const state = {
-  placed: new Set()
-};
-
-const removeState = {
-  removed: new Set()
-};
-
-const fiveStartSticks = [
-  stickFromPoints(220, 210, 220, 110, "f1"),
-  stickFromPoints(290, 210, 290, 110, "f2"),
-  stickFromPoints(360, 210, 360, 110, "f3"),
-  stickFromPoints(430, 210, 430, 110, "f4"),
-  stickFromPoints(500, 210, 500, 110, "f5")
-];
-
-const fiveTargets = {
-  f1: stickFromPoints(280, 210, 380, 210, "f1"),
-  f2: stickFromPoints(380, 210, 480, 210, "f2"),
-  f3: stickFromPoints(380, 90, 280, 210, "f3"),
-  f4: stickFromPoints(380, 90, 380, 210, "f4"),
-  f5: stickFromPoints(380, 90, 480, 210, "f5")
-};
-
-const fiveIds = Object.keys(fiveTargets);
-
-const fiveState = {
-  placed: new Set()
-};
-
-function createSvgEl(name, attrs = {}) {
-  const node = document.createElementNS(SVG_NS, name);
-  for (const [key, value] of Object.entries(attrs)) {
-    node.setAttribute(key, value);
-  }
-  return node;
-}
-
-function setMatchPosition(group, { ax, ay, bx, by }) {
-  group.dataset.ax = String(ax);
-  group.dataset.ay = String(ay);
-  group.dataset.bx = String(bx);
-  group.dataset.by = String(by);
-
-  group.querySelector(".shadow-line").setAttribute("x1", String(ax + 6));
-  group.querySelector(".shadow-line").setAttribute("y1", String(ay + 8));
-  group.querySelector(".shadow-line").setAttribute("x2", String(bx + 6));
-  group.querySelector(".shadow-line").setAttribute("y2", String(by + 8));
-
-  group.querySelector(".wood").setAttribute("x1", String(ax));
-  group.querySelector(".wood").setAttribute("y1", String(ay));
-  group.querySelector(".wood").setAttribute("x2", String(bx));
-  group.querySelector(".wood").setAttribute("y2", String(by));
-
-  const tipLeft = group.querySelector(".tip-left");
-  const tipRight = group.querySelector(".tip-right");
-  tipLeft.setAttribute("cx", String(ax));
-  tipLeft.setAttribute("cy", String(ay));
-  tipRight.setAttribute("cx", String(bx));
-  tipRight.setAttribute("cy", String(by));
-}
-
-function createMatchstick(stick, options = {}) {
-  const classes = ["match"];
-  if (options.movable) {
-    classes.push("movable", "highlight");
-  }
-  if (options.removable) {
-    classes.push("removable", "highlight");
-  }
-
-  const group = createSvgEl("g", {
-    class: classes.join(" ")
-  });
-
-  if (stick.id) {
-    group.dataset.id = stick.id;
-  }
-
-  const shadow = createSvgEl("line", {
-    class: "shadow-line",
-    "stroke-width": "10",
-    "stroke-linecap": "round"
-  });
-
-  const wood = createSvgEl("line", {
-    class: "wood",
-    "stroke-width": "10",
-    "stroke-linecap": "round",
-    stroke: "url(#wood-gradient)"
-  });
-
-  const tipLeft = createSvgEl("circle", {
-    class: "tip-left",
-    r: "7.2",
-    fill: "url(#tip-gradient)"
-  });
-
-  const tipRight = createSvgEl("circle", {
-    class: "tip-right",
-    r: "7.2",
-    fill: "url(#tip-gradient)"
-  });
-
-  group.append(shadow, wood, tipLeft, tipRight);
-  setMatchPosition(group, stick);
-
-  return group;
-}
-
-function addDefs(svg) {
-  const defs = createSvgEl("defs");
-
-  const woodGradient = createSvgEl("linearGradient", {
-    id: "wood-gradient",
-    x1: "0%",
-    y1: "0%",
-    x2: "100%",
-    y2: "0%"
-  });
-  woodGradient.append(
-    createSvgEl("stop", { offset: "0%", "stop-color": "#9e6c3f" }),
-    createSvgEl("stop", { offset: "50%", "stop-color": "#d6b37a" }),
-    createSvgEl("stop", { offset: "100%", "stop-color": "#7f5631" })
-  );
-
-  const tipGradient = createSvgEl("radialGradient", {
-    id: "tip-gradient",
-    cx: "50%",
-    cy: "50%",
-    r: "50%"
-  });
-  tipGradient.append(
-    createSvgEl("stop", { offset: "0%", "stop-color": "#f28e68" }),
-    createSvgEl("stop", { offset: "100%", "stop-color": "#a93621" })
-  );
-
-  defs.append(woodGradient, tipGradient);
-  svg.append(defs);
-}
-
-function renderOriginalFigure() {
-  addDefs(originalFigure);
-  const backdrop = createSvgEl("rect", {
-    x: "0",
-    y: "0",
-    width: "520",
-    height: "230",
-    fill: "transparent"
-  });
-  originalFigure.append(backdrop);
-  staticFigureSticks.forEach((stick) => {
-    originalFigure.append(createMatchstick(stick));
-  });
-}
-
-function renderRemoveOriginalFigure() {
-  addDefs(removeOriginalFigure);
-  removeOriginalFigure.append(
-    createSvgEl("rect", {
-      x: "0",
-      y: "0",
-      width: "360",
-      height: "250",
-      fill: "transparent"
-    })
-  );
-  removeOriginalSticks.forEach((stick) => {
-    removeOriginalFigure.append(createMatchstick(stick));
-  });
-}
-
-function renderFiveMatchFigure() {
-  addDefs(fiveMatchFigure);
-  fiveMatchFigure.append(
-    createSvgEl("rect", {
-      x: "0",
-      y: "0",
-      width: "220",
-      height: "260",
-      fill: "transparent"
-    })
-  );
-
-  const verticals = [
-    stickFromPoints(40, 42, 40, 192),
-    stickFromPoints(76, 42, 76, 192),
-    stickFromPoints(112, 42, 112, 192),
-    stickFromPoints(148, 42, 148, 192),
-    stickFromPoints(184, 42, 184, 192)
+  const shapes = [
+    createPrismShape({
+      id: "triangular-prism",
+      name: "Triangular Prism",
+      family: "Prism Family",
+      sides: 3,
+      mainColor: "#5d83d7",
+      deepColor: "#355cae",
+      prompts: [
+        "How many triangular faces and rectangular faces can you see?",
+        "What changes when the net opens but the number of faces stays the same?",
+        "Can you point to one edge where two faces meet?",
+      ],
+    }),
+    createPrismShape({
+      id: "square-prism",
+      name: "Square Prism",
+      family: "Prism Family",
+      sides: 4,
+      mainColor: "#4f74c9",
+      deepColor: "#2f549f",
+      prompts: [
+        "How is this prism different from a cube?",
+        "Count the rectangles on the sides. How many are there?",
+        "Which two faces are the square bases?",
+      ],
+    }),
+    createPrismShape({
+      id: "hexagonal-prism",
+      name: "Hexagonal Prism",
+      family: "Prism Family",
+      sides: 6,
+      mainColor: "#6789dd",
+      deepColor: "#3859aa",
+      prompts: [
+        "Why does this prism need more side faces than the square prism?",
+        "Count the six edges around one hexagonal base.",
+        "What happens to the side rectangles when the net folds closed?",
+      ],
+    }),
+    createPyramidShape({
+      id: "triangular-pyramid",
+      name: "Triangular Pyramid",
+      family: "Pyramid Family",
+      sides: 3,
+      mainColor: "#e15aa3",
+      deepColor: "#af2f73",
+      prompts: [
+        "Why are all the side faces triangles in a pyramid?",
+        "Can you find the top point called the apex?",
+        "How many faces meet at the apex?",
+      ],
+    }),
+    createPyramidShape({
+      id: "square-pyramid",
+      name: "Square Pyramid",
+      family: "Pyramid Family",
+      sides: 4,
+      mainColor: "#d95597",
+      deepColor: "#9e2d67",
+      prompts: [
+        "Which face is the square base?",
+        "How many triangular faces fold up around the base?",
+        "What shape do you get if you open it flat into a net?",
+      ],
+    }),
+    createPyramidShape({
+      id: "pentagonal-pyramid",
+      name: "Pentagonal Pyramid",
+      family: "Pyramid Family",
+      sides: 5,
+      mainColor: "#ec68ab",
+      deepColor: "#b93b7d",
+      prompts: [
+        "How many edges run from the base up to the apex?",
+        "What is the name of the five-sided base?",
+        "How does the pentagonal pyramid compare with the square pyramid?",
+      ],
+    }),
   ];
 
-  verticals.forEach((stick) => {
-    fiveMatchFigure.append(createMatchstick(stick));
-  });
-}
+  const shapeMap = Object.fromEntries(shapes.map((shape) => [shape.id, shape]));
 
-function renderFiveMatchAnswer() {
-  addDefs(fiveMatchAnswer);
-  fiveMatchAnswer.append(
-    createSvgEl("rect", {
-      x: "0",
-      y: "0",
-      width: "760",
-      height: "260",
-      fill: "transparent"
-    })
+  buildPicker(prismButtons, shapes.filter((shape) => shape.kind === "prism"));
+  buildPicker(
+    pyramidButtons,
+    shapes.filter((shape) => shape.kind === "pyramid")
   );
 
-  const placeholder = createSvgEl("text", {
-    x: "380",
-    y: "132",
-    class: "practice-placeholder",
-    "text-anchor": "middle",
-    id: "five-placeholder"
+  slider.addEventListener("input", () => {
+    state.fold = Number(slider.value) / 100;
+    render();
   });
-  placeholder.textContent = "Click the 5 glowing matchsticks below to build 2 triangles";
-  fiveMatchAnswer.append(placeholder);
 
-  const title = createSvgEl("text", {
-    x: "380",
-    y: "34",
-    class: "face-label",
-    "text-anchor": "middle"
-  });
-  title.textContent = "Two Triangles Sharing One Side";
-  fiveMatchAnswer.append(title);
-
-  const targetLayer = createSvgEl("g", { id: "five-target-layer" });
-  fiveIds.forEach((id, index) => {
-    const target = fiveTargets[id];
-    const midX = (target.ax + target.bx) / 2;
-    const midY = (target.ay + target.by) / 2;
-
-    targetLayer.append(
-      createSvgEl("line", {
-        class: "target-slot",
-        x1: String(target.ax),
-        y1: String(target.ay),
-        x2: String(target.bx),
-        y2: String(target.by)
-      })
-    );
-    targetLayer.append(
-      createSvgEl("circle", {
-        class: "target-ring",
-        cx: String(midX),
-        cy: String(midY - 26),
-        r: "14"
-      })
-    );
-    const label = createSvgEl("text", {
-      class: "target-number",
-      x: String(midX),
-      y: String(midY - 21),
-      "text-anchor": "middle"
+  document.querySelectorAll("[data-fold]").forEach((button) => {
+    button.addEventListener("click", () => {
+      slider.value = button.dataset.fold;
+      state.fold = Number(button.dataset.fold) / 100;
+      render();
     });
-    label.textContent = String(index + 1);
-    targetLayer.append(label);
-  });
-  fiveMatchAnswer.append(targetLayer);
-
-  const faceLeft = createSvgEl("polygon", {
-    class: "face-fill",
-    points: "280,210 380,90 380,210",
-    fill: "rgba(245, 196, 116, 0.35)",
-    stroke: "rgba(190, 132, 47, 0.55)"
-  });
-  const faceRight = createSvgEl("polygon", {
-    class: "face-fill",
-    points: "380,90 380,210 480,210",
-    fill: "rgba(230, 173, 94, 0.32)",
-    stroke: "rgba(180, 115, 33, 0.55)"
   });
 
-  const faceLayer = createSvgEl("g", {
-    id: "five-face-layer",
-    class: "solved-illustration"
+  resetViewButton.addEventListener("click", () => {
+    state.rotationX = -0.65;
+    state.rotationY = 0.82;
+    render();
   });
-  faceLayer.append(faceLeft, faceRight);
-  fiveMatchAnswer.append(faceLayer);
 
-  const looseLayer = createSvgEl("g", { id: "five-loose-layer" });
-  fiveStartSticks.forEach((stick) => {
-    looseLayer.append(createMatchstick(stick, { movable: true }));
-  });
-  fiveMatchAnswer.append(looseLayer);
-}
+  svg.addEventListener("pointerdown", onPointerDown);
+  svg.addEventListener("pointermove", onPointerMove);
+  svg.addEventListener("pointerup", onPointerUp);
+  svg.addEventListener("pointerleave", onPointerUp);
+  svg.addEventListener("pointercancel", onPointerUp);
 
-function resetFivePuzzle() {
-  fiveState.placed.clear();
-  fiveMatchAnswer.querySelector("#five-face-layer").classList.remove("visible");
-  fiveMatchAnswer.querySelector("#five-placeholder").style.opacity = "1";
-  fiveMatchAnswer.querySelector("#five-target-layer").style.opacity = "1";
-  fiveMatchAnswer.querySelectorAll("#five-loose-layer .match").forEach((match) => {
-    const start = fiveStartSticks.find((stick) => stick.id === match.dataset.id);
-    setMatchPosition(match, start);
-    match.classList.remove("active");
-  });
-  fiveStatusText.textContent = "Click the 5 glowing matchsticks to build 2 triangles.";
-  fiveSolutionNote.hidden = true;
-}
+  render();
 
-function showFiveAnswer() {
-  resetFivePuzzle();
-  fiveIds.forEach((id) => {
-    setMatchPosition(getFiveMatchById(id), fiveTargets[id]);
-    fiveState.placed.add(id);
-  });
-  fiveMatchAnswer.querySelector("#five-face-layer").classList.add("visible");
-  fiveMatchAnswer.querySelector("#five-placeholder").style.opacity = "0";
-  fiveMatchAnswer.querySelector("#five-target-layer").style.opacity = "0";
-  fiveStatusText.textContent = "Shown: 2 triangles are made by sharing the middle side.";
-  fiveSolutionNote.hidden = false;
-}
-
-function updateFiveStatus() {
-  if (fiveState.placed.size === fiveIds.length) {
-    fiveStatusText.textContent = "Solved! You used 5 matchsticks to make 2 triangles.";
-  } else {
-    fiveStatusText.textContent = `Click ${fiveIds.length - fiveState.placed.size} more glowing matchstick${fiveIds.length - fiveState.placed.size === 1 ? "" : "s"} to build 2 triangles.`;
-  }
-}
-
-function checkFiveSolved() {
-  if (fiveState.placed.size !== fiveIds.length) {
-    return;
-  }
-
-  fiveMatchAnswer.querySelector("#five-face-layer").classList.add("visible");
-  fiveMatchAnswer.querySelector("#five-placeholder").style.opacity = "0";
-  fiveMatchAnswer.querySelector("#five-target-layer").style.opacity = "0";
-  fiveSolutionNote.hidden = false;
-  updateFiveStatus();
-}
-
-function handleFiveBoardClick(event) {
-  const match = event.target.closest("#five-loose-layer .match.movable");
-  if (!match || fiveState.placed.has(match.dataset.id)) {
-    return;
-  }
-
-  setMatchPosition(match, fiveTargets[match.dataset.id]);
-  match.classList.add("active");
-  fiveState.placed.add(match.dataset.id);
-  updateFiveStatus();
-  checkFiveSolved();
-}
-
-function addBoardDecor() {
-  addDefs(board);
-
-  board.append(
-    createSvgEl("rect", {
-      x: "0",
-      y: "0",
-      width: "620",
-      height: "430",
-      fill: "transparent"
-    })
-  );
-
-  const glow = createSvgEl("ellipse", {
-    cx: "310",
-    cy: "312",
-    rx: "180",
-    ry: "54",
-    fill: "rgba(239, 197, 115, 0.18)"
-  });
-  board.append(glow);
-
-  const targetLayer = createSvgEl("g", { id: "target-layer" });
-  movableIds.forEach((id, index) => {
-    const target = movableTargets[id];
-    const slot = createSvgEl("line", {
-      class: "target-slot",
-      "data-slot-id": id,
-      x1: String(target.ax),
-      y1: String(target.ay),
-      x2: String(target.bx),
-      y2: String(target.by)
+  function buildPicker(container, items) {
+    items.forEach((shape) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = shape.name;
+      button.dataset.shapeId = shape.id;
+      button.addEventListener("click", () => {
+        state.currentId = shape.id;
+        updatePickerState();
+        render();
+      });
+      container.appendChild(button);
     });
-    targetLayer.append(slot);
+    updatePickerState();
+  }
 
-    const ringX = (target.ax + target.bx) / 2;
-    const ringY = (target.ay + target.by) / 2 - 36;
-    const ring = createSvgEl("circle", {
-      class: "target-ring",
-      cx: String(ringX),
-      cy: String(ringY),
-      r: "16"
+  function updatePickerState() {
+    document.querySelectorAll("[data-shape-id]").forEach((button) => {
+      button.classList.toggle("active", button.dataset.shapeId === state.currentId);
     });
-    const label = createSvgEl("text", {
-      class: "target-number",
-      x: String(ringX),
-      y: String(ringY + 6),
-      "text-anchor": "middle"
-    });
-    label.textContent = String(index + 1);
-    targetLayer.append(ring, label);
-  });
-  board.append(targetLayer);
-
-  const flatLayout = createSvgEl("g", { class: "flat-layout", id: "flat-layout" });
-  boardStart.forEach((stick) => {
-    flatLayout.append(createMatchstick(stick, { movable: movableIds.includes(stick.id) }));
-  });
-  board.append(flatLayout);
-
-  const arrowLayer = createSvgEl("g", { id: "arrow-layer" });
-  movableIds.forEach((id) => {
-    const start = boardStart.find((stick) => stick.id === id);
-    const target = movableTargets[id];
-    const arrow = createSvgEl("path", {
-      class: "move-arrow",
-      d: `M ${(start.ax + start.bx) / 2} ${(start.ay + start.by) / 2 - 26} Q ${((start.ax + start.bx) / 2 + (target.ax + target.bx) / 2) / 2} ${Math.min(start.ay, target.ay) - 70} ${(target.ax + target.bx) / 2} ${(target.ay + target.by) / 2 - 18}`
-    });
-    arrowLayer.append(arrow);
-  });
-  board.append(arrowLayer);
-
-  const solved = createSolvedIllustration();
-  board.append(solved);
-}
-
-function createSolvedIllustration() {
-  const group = createSvgEl("g", { class: "solved-illustration", id: "solved-illustration" });
-
-  const hiddenFace = createSvgEl("polygon", {
-    class: "face-fill",
-    points: "230,255 310,205 390,255",
-    fill: "rgba(208, 169, 119, 0.22)",
-    stroke: "rgba(154, 108, 64, 0.55)",
-    "stroke-dasharray": "8 7"
-  });
-
-  const leftFace = createSvgEl("polygon", {
-    class: "face-fill",
-    points: "310,100 230,255 310,205",
-    fill: "rgba(245, 196, 116, 0.55)",
-    stroke: "rgba(190, 132, 47, 0.6)"
-  });
-
-  const rightFace = createSvgEl("polygon", {
-    class: "face-fill",
-    points: "310,100 310,205 390,255",
-    fill: "rgba(230, 173, 94, 0.5)",
-    stroke: "rgba(180, 115, 33, 0.6)"
-  });
-
-  const frontFace = createSvgEl("polygon", {
-    class: "face-fill",
-    points: "310,100 230,255 390,255",
-    fill: "rgba(255, 230, 176, 0.42)",
-    stroke: "rgba(202, 155, 73, 0.5)"
-  });
-
-  const label = createSvgEl("text", {
-    x: "310",
-    y: "348",
-    "text-anchor": "middle",
-    fill: "#8a5a2b",
-    "font-size": "24",
-    "font-weight": "800"
-  });
-  label.textContent = "4 triangular faces: 3 visible + 1 hidden";
-
-  const faceLabels = [
-    { x: 268, y: 192, text: "Face 1" },
-    { x: 352, y: 192, text: "Face 2" },
-    { x: 310, y: 272, text: "Face 3" },
-    { x: 310, y: 228, text: "Face 4 hidden", hidden: true }
-  ].map(({ x, y, text, hidden }) => {
-    const node = createSvgEl("text", {
-      class: `face-label${hidden ? " hidden" : ""}`,
-      x: String(x),
-      y: String(y),
-      "text-anchor": "middle"
-    });
-    node.textContent = text;
-    return node;
-  });
-
-  const solvedSticks = [
-    stickFromPoints(310, 100, 230, 255),
-    stickFromPoints(310, 100, 390, 255),
-    stickFromPoints(230, 255, 390, 255),
-    stickFromPoints(310, 100, 310, 205),
-    stickFromPoints(230, 255, 310, 205),
-    stickFromPoints(310, 205, 390, 255)
-  ];
-
-  group.append(hiddenFace, leftFace, rightFace, frontFace);
-  solvedSticks.forEach((stick) => group.append(createMatchstick(stick)));
-  faceLabels.forEach((node) => group.append(node));
-  group.append(label);
-  return group;
-}
-
-function addRemoveBoardDecor() {
-  addDefs(removeBoard);
-
-  removeBoard.append(
-    createSvgEl("rect", {
-      x: "0",
-      y: "0",
-      width: "520",
-      height: "320",
-      fill: "transparent"
-    })
-  );
-
-  const glow = createSvgEl("ellipse", {
-    cx: "255",
-    cy: "248",
-    rx: "180",
-    ry: "48",
-    fill: "rgba(239, 197, 115, 0.14)"
-  });
-  removeBoard.append(glow);
-
-  const flatLayout = createSvgEl("g", { id: "remove-layout" });
-  removeBoardSticks.forEach((stick, index) => {
-    flatLayout.append(
-      createMatchstick(stick, { removable: removeIds.includes(removeBoardSticks[index].id) })
-    );
-  });
-  removeBoard.append(flatLayout);
-
-  const answerOverlay = createSvgEl("g", {
-    id: "remove-answer-overlay",
-    class: "solved-illustration"
-  });
-
-  const labels = [
-    { x: 139, y: 255, text: "Triangle 1" },
-    { x: 305, y: 255, text: "Triangle 2" },
-    { x: 409, y: 255, text: "Triangle 3" }
-  ];
-  labels.forEach(({ x, y, text }) => {
-    const node = createSvgEl("text", {
-      class: "face-label",
-      x: String(x),
-      y: String(y),
-      "text-anchor": "middle"
-    });
-    node.textContent = text;
-    answerOverlay.append(node);
-  });
-
-  const note = createSvgEl("text", {
-    x: "260",
-    y: "292",
-    class: "face-label",
-    "text-anchor": "middle"
-  });
-  note.textContent = "Only 3 triangles remain";
-  answerOverlay.append(note);
-  removeBoard.append(answerOverlay);
-}
-
-function getMatches() {
-  return Array.from(board.querySelectorAll(".match[data-id]"));
-}
-
-function getMatchById(id) {
-  return board.querySelector(`.match[data-id="${id}"]`);
-}
-
-function getSlotById(id) {
-  return board.querySelector(`.target-slot[data-slot-id="${id}"]`);
-}
-
-function getRemoveMatchById(id) {
-  return removeBoard.querySelector(`.match[data-id="${id}"]`);
-}
-
-function getFiveMatchById(id) {
-  return fiveMatchAnswer.querySelector(`.match[data-id="${id}"]`);
-}
-
-function updateStatus() {
-  if (state.placed.size === movableIds.length) {
-    statusText.textContent = "Solved! The answer is a 3D tetrahedron with 4 triangular faces.";
-  } else {
-    statusText.textContent = `Click ${movableIds.length - state.placed.size} more glowing stick${movableIds.length - state.placed.size === 1 ? "" : "s"} to move ${movableIds.length - state.placed.size === 1 ? "it" : "them"} into place.`;
-  }
-}
-
-function placeMatch(match, target) {
-  setMatchPosition(match, target);
-  state.placed.add(match.dataset.id);
-  match.classList.remove("active");
-  getSlotById(match.dataset.id).classList.add("filled");
-}
-
-function resetMatch(match) {
-  const start = boardStart.find((stick) => stick.id === match.dataset.id);
-  setMatchPosition(match, start);
-  match.classList.remove("active");
-  getSlotById(match.dataset.id).classList.remove("filled");
-}
-
-function checkSolved() {
-  if (state.placed.size !== movableIds.length) {
-    return;
   }
 
-  board.classList.add("solved");
-  const solvedIllustration = document.getElementById("solved-illustration");
-  solvedIllustration.classList.add("visible");
-  solutionNote.hidden = false;
-  updateStatus();
-}
-
-function handleBoardClick(event) {
-  if (board.classList.contains("solved")) {
-    return;
+  function onPointerDown(event) {
+    state.drag = {
+      x: event.clientX,
+      y: event.clientY,
+      rotationX: state.rotationX,
+      rotationY: state.rotationY,
+    };
+    svg.classList.add("dragging");
+    svg.setPointerCapture(event.pointerId);
   }
 
-  const match = event.target.closest(".match.movable");
-  if (match && !state.placed.has(match.dataset.id)) {
-    match.classList.add("active");
-    placeMatch(match, movableTargets[match.dataset.id]);
-    updateStatus();
-    checkSolved();
-    return;
-  }
-}
-
-function resetBoard() {
-  state.placed.clear();
-  board.classList.remove("solved");
-  solutionNote.hidden = true;
-  document.getElementById("solved-illustration").classList.remove("visible");
-
-  getMatches().forEach((match) => resetMatch(match));
-  updateStatus();
-}
-
-function showAnswer() {
-  resetBoard();
-  movableIds.forEach((id) => {
-    placeMatch(getMatchById(id), movableTargets[id]);
-  });
-  updateStatus();
-  checkSolved();
-}
-
-function updateRemoveStatus() {
-  if (removeState.removed.size === removeIds.length) {
-    removeStatusText.textContent = "Solved! After removing 4 sticks, only 3 triangles remain.";
-  } else {
-    removeStatusText.textContent = `Remove ${removeIds.length - removeState.removed.size} more glowing stick${removeIds.length - removeState.removed.size === 1 ? "" : "s"}.`;
-  }
-}
-
-function resetRemoveBoard() {
-  removeState.removed.clear();
-  removeBoard.classList.remove("solved");
-  removeSolutionNote.hidden = true;
-  removeBoard.querySelector("#remove-answer-overlay").classList.remove("visible");
-  removeBoard.querySelectorAll(".match.removable").forEach((match) => {
-    match.classList.remove("removed");
-  });
-  updateRemoveStatus();
-}
-
-function checkRemoveSolved() {
-  if (removeState.removed.size !== removeIds.length) {
-    return;
-  }
-
-  removeBoard.classList.add("solved");
-  removeSolutionNote.hidden = false;
-  removeBoard.querySelector("#remove-answer-overlay").classList.add("visible");
-  updateRemoveStatus();
-}
-
-function handleRemoveBoardClick(event) {
-  const match = event.target.closest(".match.removable");
-  if (!match || match.classList.contains("removed")) {
-    return;
-  }
-
-  match.classList.add("removed");
-  removeState.removed.add(match.dataset.id);
-  updateRemoveStatus();
-  checkRemoveSolved();
-}
-
-function showRemoveAnswer() {
-  resetRemoveBoard();
-  removeIds.forEach((id) => {
-    const match = getRemoveMatchById(id);
-    if (match) {
-      match.classList.add("removed");
-      removeState.removed.add(id);
+  function onPointerMove(event) {
+    if (!state.drag) {
+      return;
     }
-  });
-  updateRemoveStatus();
-  checkRemoveSolved();
-}
+    const dx = event.clientX - state.drag.x;
+    const dy = event.clientY - state.drag.y;
+    state.rotationY = state.drag.rotationY + dx * 0.01;
+    state.rotationX = clamp(state.drag.rotationX + dy * 0.01, -1.5, 1.5);
+    render();
+  }
 
-renderOriginalFigure();
-addBoardDecor();
-updateStatus();
-renderRemoveOriginalFigure();
-addRemoveBoardDecor();
-updateRemoveStatus();
-renderFiveMatchFigure();
-renderFiveMatchAnswer();
-resetFivePuzzle();
+  function onPointerUp(event) {
+    if (state.drag) {
+      state.drag = null;
+      svg.classList.remove("dragging");
+      if (event.pointerId !== undefined && svg.hasPointerCapture(event.pointerId)) {
+        svg.releasePointerCapture(event.pointerId);
+      }
+    }
+  }
 
-board.addEventListener("click", handleBoardClick);
-resetBtn.addEventListener("click", resetBoard);
-answerBtn.addEventListener("click", showAnswer);
-removeBoard.addEventListener("click", handleRemoveBoardClick);
-removeResetBtn.addEventListener("click", resetRemoveBoard);
-removeAnswerBtn.addEventListener("click", showRemoveAnswer);
-fiveMatchAnswer.addEventListener("click", handleFiveBoardClick);
-fiveResetBtn.addEventListener("click", resetFivePuzzle);
-fiveAnswerBtn.addEventListener("click", showFiveAnswer);
+  function render() {
+    const shape = shapeMap[state.currentId];
+    document.querySelector(".stage-wrap").style.background =
+      `radial-gradient(circle at 40% 24%, rgba(255,255,255,0.98), rgba(247,244,239,0.95) 58%, rgba(239,235,228,0.92)), linear-gradient(180deg, ${familyTint[shape.family]}, rgba(255,255,255,0))`;
+    const scene = shape.getScene(state.fold);
+    const centeredScene = centerScene(scene);
+    const rotatedFaces = centeredScene.faces.map((face) => ({
+      ...face,
+      points: face.points.map((point) =>
+        rotatePoint(point, state.rotationX, state.rotationY)
+      ),
+    }));
+    const rotatedHinges = centeredScene.hinges.map((hinge) =>
+      hinge.map((point) => rotatePoint(point, state.rotationX, state.rotationY))
+    );
+
+    drawSvg(rotatedFaces, rotatedHinges, shape.mainColor);
+    updateInfo(shape);
+  }
+
+  function drawSvg(faces, hinges, accentColor) {
+    svg.innerHTML = "";
+
+    const allPoints = faces.flatMap((face) => face.points);
+    const projected = allPoints.map((point) => projectRaw(point));
+    const bounds = get2DBounds(projected);
+    const padding = 70;
+    const scale = Math.min(
+      (1000 - padding * 2) / Math.max(bounds.width, 1),
+      (700 - padding * 2) / Math.max(bounds.height, 1)
+    );
+
+    const projectedFaces = faces
+      .map((face) => ({
+        ...face,
+        projected: face.points.map((point) =>
+          projectToViewport(projectRaw(point), scale, bounds)
+        ),
+        depth: average(face.points.map((point) => point.z)),
+        centroid3D: centroid3D(face.points),
+        normal: faceNormal(face.points),
+      }))
+      .sort((a, b) => a.depth - b.depth);
+
+    const defs = document.createElementNS(SVG_NS, "defs");
+    const filter = document.createElementNS(SVG_NS, "filter");
+    filter.setAttribute("id", "softShadow");
+    const dropShadow = document.createElementNS(SVG_NS, "feDropShadow");
+    dropShadow.setAttribute("dx", "0");
+    dropShadow.setAttribute("dy", "10");
+    dropShadow.setAttribute("stdDeviation", "8");
+    dropShadow.setAttribute("flood-color", "#1d273b");
+    dropShadow.setAttribute("flood-opacity", "0.2");
+    filter.appendChild(dropShadow);
+    const labelShadow = document.createElementNS(SVG_NS, "filter");
+    labelShadow.setAttribute("id", "labelShadow");
+    const labelDrop = document.createElementNS(SVG_NS, "feDropShadow");
+    labelDrop.setAttribute("dx", "0");
+    labelDrop.setAttribute("dy", "4");
+    labelDrop.setAttribute("stdDeviation", "4");
+    labelDrop.setAttribute("flood-color", "#1d273b");
+    labelDrop.setAttribute("flood-opacity", "0.16");
+    labelShadow.appendChild(labelDrop);
+    defs.appendChild(filter);
+    defs.appendChild(labelShadow);
+    svg.appendChild(defs);
+
+    const shadowEllipse = document.createElementNS(SVG_NS, "ellipse");
+    shadowEllipse.setAttribute("cx", "500");
+    shadowEllipse.setAttribute("cy", "622");
+    shadowEllipse.setAttribute("rx", "250");
+    shadowEllipse.setAttribute("ry", "34");
+    shadowEllipse.setAttribute("fill", "rgba(23, 35, 53, 0.10)");
+    svg.appendChild(shadowEllipse);
+
+    projectedFaces.forEach((face) => {
+      const polygon = document.createElementNS(SVG_NS, "polygon");
+      const lighting = faceLighting(face.normal);
+      polygon.setAttribute(
+        "points",
+        face.projected.map((point) => `${point.x},${point.y}`).join(" ")
+      );
+      polygon.setAttribute("fill", shadeColor(face.fill, lighting));
+      polygon.setAttribute("stroke", shadeColor(face.stroke, -0.08));
+      polygon.setAttribute("stroke-width", "2.8");
+      polygon.setAttribute("stroke-linejoin", "round");
+      polygon.setAttribute("filter", "url(#softShadow)");
+      svg.appendChild(polygon);
+
+      const highlight = document.createElementNS(SVG_NS, "polyline");
+      highlight.setAttribute(
+        "points",
+        face.projected.map((point) => `${point.x},${point.y}`).join(" ")
+      );
+      highlight.setAttribute("fill", "none");
+      highlight.setAttribute("stroke", "rgba(255,255,255,0.45)");
+      highlight.setAttribute("stroke-width", "1.2");
+      highlight.setAttribute("stroke-linejoin", "round");
+      highlight.setAttribute("opacity", clamp(0.22 + lighting * 1.8, 0.14, 0.48));
+      svg.appendChild(highlight);
+    });
+
+    hinges.forEach((hinge) => {
+      const start = projectToViewport(projectRaw(hinge[0]), scale, bounds);
+      const end = projectToViewport(projectRaw(hinge[1]), scale, bounds);
+      const underlay = document.createElementNS(SVG_NS, "line");
+      underlay.setAttribute("x1", start.x);
+      underlay.setAttribute("y1", start.y);
+      underlay.setAttribute("x2", end.x);
+      underlay.setAttribute("y2", end.y);
+      underlay.setAttribute("stroke", "rgba(255,255,255,0.92)");
+      underlay.setAttribute("stroke-width", "5");
+      underlay.setAttribute("stroke-dasharray", "2 12");
+      underlay.setAttribute("stroke-linecap", "round");
+      underlay.setAttribute("opacity", state.fold < 0.97 ? "0.92" : "0.28");
+      svg.appendChild(underlay);
+
+      const line = document.createElementNS(SVG_NS, "line");
+      line.setAttribute("x1", start.x);
+      line.setAttribute("y1", start.y);
+      line.setAttribute("x2", end.x);
+      line.setAttribute("y2", end.y);
+      line.setAttribute("stroke", shadeColor(accentColor, -0.18));
+      line.setAttribute("stroke-width", "2.4");
+      line.setAttribute("stroke-dasharray", "7 10");
+      line.setAttribute("stroke-linecap", "round");
+      line.setAttribute("opacity", state.fold < 0.97 ? "0.95" : "0.32");
+      svg.appendChild(line);
+    });
+
+    const labels = buildTeachingLabels(projectedFaces);
+    drawTeachingLabels(labels);
+  }
+
+  function updateInfo(shape) {
+    title.textContent = shape.name;
+    typeLabel.textContent = shape.family;
+    facesCount.textContent = shape.stats.faces;
+    edgesCount.textContent = shape.stats.edges;
+    verticesCount.textContent = shape.stats.vertices;
+    netType.textContent = shape.netLabel;
+    promptList.innerHTML = "";
+    shape.prompts.forEach((prompt) => {
+      const item = document.createElement("li");
+      item.textContent = prompt;
+      promptList.appendChild(item);
+    });
+  }
+
+  function createPrismShape(config) {
+    const sideLength = 120;
+    const height = 150;
+    const basePolygon = regularPolygonFromEdge(config.sides, sideLength, -1);
+    const bottomPolygon = regularPolygonFromEdge(config.sides, sideLength, 1);
+    const angle = (Math.PI * 2) / config.sides;
+
+    return {
+      id: config.id,
+      kind: "prism",
+      name: config.name,
+      family: config.family,
+      mainColor: config.mainColor,
+      deepColor: config.deepColor,
+      prompts: config.prompts,
+      netLabel: `${config.sides} rectangles + 2 ${polygonName(config.sides)} bases`,
+      stats: {
+        faces: config.sides + 2,
+        edges: config.sides * 3,
+        vertices: config.sides * 2,
+      },
+      getScene(fold) {
+        const faces = [];
+        const hinges = [];
+
+        for (let i = 0; i < config.sides; i += 1) {
+          let matrix = identity();
+          for (let step = 0; step < i; step += 1) {
+            matrix = multiply(matrix, translate(sideLength, 0, 0));
+            matrix = multiply(matrix, rotateY(-fold * angle));
+          }
+
+          const rect = [
+            point3(0, 0, 0),
+            point3(sideLength, 0, 0),
+            point3(sideLength, height, 0),
+            point3(0, height, 0),
+          ];
+
+          const tint = i % 2 === 0 ? 0.18 : 0.04;
+          faces.push({
+            points: rect.map((point) => applyMatrix(matrix, point)),
+            fill: shadeColor(config.mainColor, tint),
+            stroke: config.deepColor,
+          });
+
+          if (i > 0) {
+            const hingeStart = applyMatrix(matrix, point3(0, 0, 0));
+            const hingeEnd = applyMatrix(matrix, point3(0, height, 0));
+            hinges.push([hingeStart, hingeEnd]);
+          }
+        }
+
+        const topMatrix = multiply(identity(), rotateX(-fold * Math.PI * 0.5));
+        const bottomMatrix = multiply(
+          translate(0, height, 0),
+          rotateX(fold * Math.PI * 0.5)
+        );
+
+        faces.push({
+          points: basePolygon.map((point) => applyMatrix(topMatrix, point)),
+          fill: shadeColor(config.mainColor, 0.28),
+          stroke: config.deepColor,
+        });
+
+        faces.push({
+          points: bottomPolygon.map((point) => applyMatrix(bottomMatrix, point)),
+          fill: shadeColor(config.mainColor, -0.05),
+          stroke: config.deepColor,
+        });
+
+        hinges.push([
+          applyMatrix(identity(), point3(0, 0, 0)),
+          applyMatrix(identity(), point3(sideLength, 0, 0)),
+        ]);
+        hinges.push([
+          applyMatrix(identity(), point3(0, height, 0)),
+          applyMatrix(identity(), point3(sideLength, height, 0)),
+        ]);
+
+        return { faces, hinges };
+      },
+    };
+  }
+
+  function createPyramidShape(config) {
+    const sideLength = 150;
+    const basePoints2D = regularPolygonCentered(config.sides, sideLength);
+    const apothem = sideLength / (2 * Math.tan(Math.PI / config.sides));
+    const pyramidHeight = sideLength * 0.95;
+    const slantHeight = Math.sqrt(apothem * apothem + pyramidHeight * pyramidHeight);
+    const foldAngle = Math.atan2(pyramidHeight, apothem);
+
+    return {
+      id: config.id,
+      kind: "pyramid",
+      name: config.name,
+      family: config.family,
+      mainColor: config.mainColor,
+      deepColor: config.deepColor,
+      prompts: config.prompts,
+      netLabel: `1 ${polygonName(config.sides)} base + ${config.sides} triangles`,
+      stats: {
+        faces: config.sides + 1,
+        edges: config.sides * 2,
+        vertices: config.sides + 1,
+      },
+      getScene(fold) {
+        const baseFace = {
+          points: basePoints2D.map((point) => point3(point.x, point.y, 0)),
+          fill: shadeColor(config.mainColor, 0.24),
+          stroke: config.deepColor,
+        };
+
+        const faces = [baseFace];
+        const hinges = [];
+
+        for (let i = 0; i < config.sides; i += 1) {
+          const start = basePoints2D[i];
+          const end = basePoints2D[(i + 1) % config.sides];
+          const edgeVector = normalize2({
+            x: end.x - start.x,
+            y: end.y - start.y,
+          });
+          const outward = {
+            x: edgeVector.y,
+            y: -edgeVector.x,
+          };
+
+          const basis = basisFromAxes(
+            point3(edgeVector.x, edgeVector.y, 0),
+            point3(outward.x, outward.y, 0),
+            point3(0, 0, 1)
+          );
+
+          const faceMatrix = multiply(
+            translate(start.x, start.y, 0),
+            multiply(basis, rotateX(-fold * foldAngle))
+          );
+
+          const triangle = [
+            point3(0, 0, 0),
+            point3(sideLength, 0, 0),
+            point3(sideLength * 0.5, -slantHeight, 0),
+          ];
+
+          faces.push({
+            points: triangle.map((point) => applyMatrix(faceMatrix, point)),
+            fill: shadeColor(config.mainColor, i % 2 === 0 ? 0.08 : -0.04),
+            stroke: config.deepColor,
+          });
+
+          hinges.push([
+            point3(start.x, start.y, 0),
+            point3(end.x, end.y, 0),
+          ]);
+        }
+
+        return { faces, hinges };
+      },
+    };
+  }
+
+  function regularPolygonFromEdge(sides, edgeLength, direction) {
+    const radius = edgeLength / (2 * Math.sin(Math.PI / sides));
+    const apothem = edgeLength / (2 * Math.tan(Math.PI / sides));
+    const center = { x: edgeLength / 2, y: direction * apothem };
+    const startAngle = direction === -1 ? Math.PI + Math.PI / sides : -Math.PI / sides;
+    const points = [];
+
+    for (let i = 0; i < sides; i += 1) {
+      const angle = startAngle - (Math.PI * 2 * i) / sides;
+      points.push(
+        point3(
+          center.x + radius * Math.cos(angle),
+          center.y + radius * Math.sin(angle),
+          0
+        )
+      );
+    }
+
+    return points;
+  }
+
+  function regularPolygonCentered(sides, edgeLength) {
+    const radius = edgeLength / (2 * Math.sin(Math.PI / sides));
+    const rotation = -Math.PI / 2;
+    const points = [];
+
+    for (let i = 0; i < sides; i += 1) {
+      const angle = rotation + (Math.PI * 2 * i) / sides;
+      points.push({
+        x: radius * Math.cos(angle),
+        y: radius * Math.sin(angle),
+      });
+    }
+
+    return points;
+  }
+
+  function polygonName(sides) {
+    return (
+      {
+        3: "triangle",
+        4: "square",
+        5: "pentagon",
+        6: "hexagon",
+      }[sides] || "polygon"
+    );
+  }
+
+  function centerScene(scene) {
+    const allPoints = [
+      ...scene.faces.flatMap((face) => face.points),
+      ...scene.hinges.flatMap((hinge) => hinge),
+    ];
+    const centroid = {
+      x: average(allPoints.map((point) => point.x)),
+      y: average(allPoints.map((point) => point.y)),
+      z: average(allPoints.map((point) => point.z)),
+    };
+
+    return {
+      faces: scene.faces.map((face) => ({
+        ...face,
+        points: face.points.map((point) => ({
+          x: point.x - centroid.x,
+          y: point.y - centroid.y,
+          z: point.z - centroid.z,
+        })),
+      })),
+      hinges: scene.hinges.map((hinge) =>
+        hinge.map((point) => ({
+          x: point.x - centroid.x,
+          y: point.y - centroid.y,
+          z: point.z - centroid.z,
+        }))
+      ),
+    };
+  }
+
+  function projectRaw(point) {
+    const distance = 1100;
+    const perspective = distance / (distance - point.z);
+    return {
+      x: point.x * perspective,
+      y: point.y * perspective,
+    };
+  }
+
+  function projectToViewport(
+    point,
+    scale,
+    bounds = { minX: 0, minY: 0, width: 0, height: 0 }
+  ) {
+    return {
+      x: 500 + (point.x - (bounds.minX + bounds.width / 2)) * scale,
+      y: 350 + (point.y - (bounds.minY + bounds.height / 2)) * scale,
+    };
+  }
+
+  function buildTeachingLabels(projectedFaces) {
+    if (!projectedFaces.length) {
+      return [];
+    }
+
+    const frontFace = projectedFaces[projectedFaces.length - 1];
+    const faceAnchor = centroid2D(frontFace.projected);
+    const faceLabel = {
+      kind: "face",
+      anchor: faceAnchor,
+      tip: clampPoint({ x: faceAnchor.x + 82, y: faceAnchor.y - 70 }),
+      color: "#f4b841",
+    };
+
+    const edgeCandidates = faceEdges(frontFace.projected);
+    edgeCandidates.sort((a, b) => b.length - a.length);
+    const bestEdge = edgeCandidates[0];
+    const edgeMid = midpoint2D(bestEdge.start, bestEdge.end);
+    const edgeLabel = {
+      kind: "edge",
+      anchor: edgeMid,
+      line: [bestEdge.start, bestEdge.end],
+      tip: clampPoint({ x: edgeMid.x + 110, y: edgeMid.y + 12 }),
+      color: "#4c79d5",
+    };
+
+    const visibleVertices = projectedFaces
+      .flatMap((face) =>
+        face.points.map((point, index) => ({
+          projected: face.projected[index],
+          depth: point.z,
+        }))
+      )
+      .sort((a, b) => b.depth - a.depth);
+    const bestVertex = visibleVertices[0].projected;
+    const vertexLabel = {
+      kind: "vertex",
+      anchor: bestVertex,
+      tip: clampPoint({ x: bestVertex.x - 112, y: bestVertex.y - 30 }),
+      color: "#e15aa3",
+    };
+
+    return [faceLabel, edgeLabel, vertexLabel];
+  }
+
+  function drawTeachingLabels(labels) {
+    labels.forEach((label) => {
+      if (label.line) {
+        const edgeFocus = document.createElementNS(SVG_NS, "line");
+        edgeFocus.setAttribute("x1", label.line[0].x);
+        edgeFocus.setAttribute("y1", label.line[0].y);
+        edgeFocus.setAttribute("x2", label.line[1].x);
+        edgeFocus.setAttribute("y2", label.line[1].y);
+        edgeFocus.setAttribute("stroke", label.color);
+        edgeFocus.setAttribute("stroke-width", "5");
+        edgeFocus.setAttribute("stroke-linecap", "round");
+        svg.appendChild(edgeFocus);
+      }
+
+      const focus = document.createElementNS(SVG_NS, "circle");
+      focus.setAttribute("cx", label.anchor.x);
+      focus.setAttribute("cy", label.anchor.y);
+      focus.setAttribute("r", label.kind === "vertex" ? "7.5" : "6");
+      focus.setAttribute("fill", "#ffffff");
+      focus.setAttribute("stroke", label.color);
+      focus.setAttribute("stroke-width", "4");
+      svg.appendChild(focus);
+
+      const leader = document.createElementNS(SVG_NS, "line");
+      leader.setAttribute("x1", label.anchor.x);
+      leader.setAttribute("y1", label.anchor.y);
+      leader.setAttribute("x2", label.tip.x);
+      leader.setAttribute("y2", label.tip.y);
+      leader.setAttribute("stroke", shadeColor(label.color, -0.2));
+      leader.setAttribute("stroke-width", "3");
+      leader.setAttribute("stroke-dasharray", "6 8");
+      leader.setAttribute("stroke-linecap", "round");
+      svg.appendChild(leader);
+
+      const group = document.createElementNS(SVG_NS, "g");
+      group.setAttribute("filter", "url(#labelShadow)");
+
+      const badgeWidth = label.kind === "vertex" ? 118 : 104;
+      const badgeHeight = 42;
+      const rect = document.createElementNS(SVG_NS, "rect");
+      rect.setAttribute("x", label.tip.x - badgeWidth / 2);
+      rect.setAttribute("y", label.tip.y - badgeHeight / 2);
+      rect.setAttribute("width", badgeWidth);
+      rect.setAttribute("height", badgeHeight);
+      rect.setAttribute("rx", "18");
+      rect.setAttribute("fill", "rgba(255,255,255,0.96)");
+      rect.setAttribute("stroke", label.color);
+      rect.setAttribute("stroke-width", "2.5");
+      group.appendChild(rect);
+
+      const text = document.createElementNS(SVG_NS, "text");
+      text.setAttribute("x", label.tip.x);
+      text.setAttribute("y", label.tip.y + 6);
+      text.setAttribute("text-anchor", "middle");
+      text.setAttribute("font-family", "Trebuchet MS, Gill Sans, sans-serif");
+      text.setAttribute("font-size", "22");
+      text.setAttribute("font-weight", "700");
+      text.setAttribute("fill", "#192534");
+      text.textContent = capitalize(label.kind);
+      group.appendChild(text);
+
+      svg.appendChild(group);
+    });
+  }
+
+  function get2DBounds(points) {
+    const xs = points.map((point) => point.x);
+    const ys = points.map((point) => point.y);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+    return {
+      minX,
+      maxX,
+      minY,
+      maxY,
+      width: maxX - minX,
+      height: maxY - minY,
+    };
+  }
+
+  function average(values) {
+    return values.reduce((sum, value) => sum + value, 0) / values.length;
+  }
+
+  function midpoint2D(a, b) {
+    return {
+      x: (a.x + b.x) / 2,
+      y: (a.y + b.y) / 2,
+    };
+  }
+
+  function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
+  function clampPoint(point) {
+    return {
+      x: clamp(point.x, 90, 910),
+      y: clamp(point.y, 70, 630),
+    };
+  }
+
+  function centroid2D(points) {
+    return {
+      x: average(points.map((point) => point.x)),
+      y: average(points.map((point) => point.y)),
+    };
+  }
+
+  function centroid3D(points) {
+    return {
+      x: average(points.map((point) => point.x)),
+      y: average(points.map((point) => point.y)),
+      z: average(points.map((point) => point.z)),
+    };
+  }
+
+  function faceEdges(points) {
+    const edges = [];
+    for (let index = 0; index < points.length; index += 1) {
+      const start = points[index];
+      const end = points[(index + 1) % points.length];
+      edges.push({
+        start,
+        end,
+        length: Math.hypot(end.x - start.x, end.y - start.y),
+      });
+    }
+    return edges;
+  }
+
+  function faceNormal(points) {
+    const [a, b, c] = points;
+    const ab = {
+      x: b.x - a.x,
+      y: b.y - a.y,
+      z: b.z - a.z,
+    };
+    const ac = {
+      x: c.x - a.x,
+      y: c.y - a.y,
+      z: c.z - a.z,
+    };
+    return normalize3({
+      x: ab.y * ac.z - ab.z * ac.y,
+      y: ab.z * ac.x - ab.x * ac.z,
+      z: ab.x * ac.y - ab.y * ac.x,
+    });
+  }
+
+  function faceLighting(normal) {
+    const light = normalize3({ x: -0.5, y: -0.9, z: 1 });
+    return dot3(normal, light) * 0.18 + 0.03;
+  }
+
+  function rotatePoint(point, rotationX, rotationY) {
+    const cosY = Math.cos(rotationY);
+    const sinY = Math.sin(rotationY);
+    const cosX = Math.cos(rotationX);
+    const sinX = Math.sin(rotationX);
+
+    const x1 = point.x * cosY + point.z * sinY;
+    const z1 = -point.x * sinY + point.z * cosY;
+    const y1 = point.y * cosX - z1 * sinX;
+    const z2 = point.y * sinX + z1 * cosX;
+
+    return { x: x1, y: y1, z: z2 };
+  }
+
+  function normalize2(vector) {
+    const length = Math.hypot(vector.x, vector.y) || 1;
+    return { x: vector.x / length, y: vector.y / length };
+  }
+
+  function normalize3(vector) {
+    const length = Math.hypot(vector.x, vector.y, vector.z) || 1;
+    return {
+      x: vector.x / length,
+      y: vector.y / length,
+      z: vector.z / length,
+    };
+  }
+
+  function dot3(a, b) {
+    return a.x * b.x + a.y * b.y + a.z * b.z;
+  }
+
+  function point3(x, y, z) {
+    return { x, y, z };
+  }
+
+  function identity() {
+    return [
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1,
+    ];
+  }
+
+  function multiply(a, b) {
+    const out = new Array(16).fill(0);
+    for (let row = 0; row < 4; row += 1) {
+      for (let col = 0; col < 4; col += 1) {
+        for (let k = 0; k < 4; k += 1) {
+          out[row * 4 + col] += a[row * 4 + k] * b[k * 4 + col];
+        }
+      }
+    }
+    return out;
+  }
+
+  function translate(x, y, z) {
+    return [
+      1, 0, 0, x,
+      0, 1, 0, y,
+      0, 0, 1, z,
+      0, 0, 0, 1,
+    ];
+  }
+
+  function rotateX(angle) {
+    const c = Math.cos(angle);
+    const s = Math.sin(angle);
+    return [
+      1, 0, 0, 0,
+      0, c, -s, 0,
+      0, s, c, 0,
+      0, 0, 0, 1,
+    ];
+  }
+
+  function rotateY(angle) {
+    const c = Math.cos(angle);
+    const s = Math.sin(angle);
+    return [
+      c, 0, s, 0,
+      0, 1, 0, 0,
+      -s, 0, c, 0,
+      0, 0, 0, 1,
+    ];
+  }
+
+  function basisFromAxes(xAxis, yAxis, zAxis) {
+    return [
+      xAxis.x, yAxis.x, zAxis.x, 0,
+      xAxis.y, yAxis.y, zAxis.y, 0,
+      xAxis.z, yAxis.z, zAxis.z, 0,
+      0, 0, 0, 1,
+    ];
+  }
+
+  function applyMatrix(matrix, point) {
+    return {
+      x:
+        matrix[0] * point.x +
+        matrix[1] * point.y +
+        matrix[2] * point.z +
+        matrix[3],
+      y:
+        matrix[4] * point.x +
+        matrix[5] * point.y +
+        matrix[6] * point.z +
+        matrix[7],
+      z:
+        matrix[8] * point.x +
+        matrix[9] * point.y +
+        matrix[10] * point.z +
+        matrix[11],
+    };
+  }
+
+  function shadeColor(hex, amount) {
+    const value = hex.replace("#", "");
+    const num = Number.parseInt(value, 16);
+    const adjust = (channel) =>
+      clamp(Math.round(channel + 255 * amount), 0, 255)
+        .toString(16)
+        .padStart(2, "0");
+
+    const r = adjust((num >> 16) & 255);
+    const g = adjust((num >> 8) & 255);
+    const b = adjust(num & 255);
+    return `#${r}${g}${b}`;
+  }
+
+  function capitalize(value) {
+    return value.charAt(0).toUpperCase() + value.slice(1);
+  }
+})();
