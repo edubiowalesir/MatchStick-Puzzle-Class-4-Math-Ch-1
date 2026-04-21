@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Matchstick Puzzles</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700&family=Nunito:wght@400;600;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Class 4 Math Puzzle</p>
+          <h1>Move two matchsticks to make 4 triangles</h1>
+          <p class="intro">
+            First see the starting figure, then try the interactive puzzle.
+            The trick is to stop thinking flat and imagine the sticks folding
+            into a 3D shape.
+          </p>
+        </div>
+        <div class="hero-card">
+          <div class="card-header">
+            <span>Original figure</span>
+            <span class="tag">9 matchsticks</span>
+          </div>
+          <svg
+            id="original-figure"
+            class="match-scene"
+            viewBox="0 0 520 230"
+            aria-label="Original matchstick puzzle figure"
+          ></svg>
+        </div>
+      </section>
+
+      <section class="playground">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Interactive Puzzle</p>
+            <h2>Click the 2 glowing sticks</h2>
+          </div>
+          <p id="status-text" class="status-text">
+            Click a glowing stick to move it into place.
+          </p>
+        </div>
+
+        <div class="board-wrap">
+          <svg
+            id="interactive-board"
+            class="match-scene board"
+            viewBox="0 0 620 430"
+            aria-label="Interactive matchstick puzzle board"
+          ></svg>
+        </div>
+
+        <p class="tap-hint">
+          Click stick <strong>1</strong> and stick <strong>2</strong>. Each one
+          jumps into the correct position.
+        </p>
+
+        <div class="controls">
+          <button id="reset-btn" type="button">Reset</button>
+          <button id="answer-btn" type="button" class="secondary">
+            Show answer
+          </button>
+        </div>
+
+        <div id="solution-note" class="solution-note" hidden>
+          <h3>Answer: make a triangular pyramid</h3>
+          <p>
+            The 4 triangles appear when the puzzle is viewed in 3D as a
+            tetrahedron. The two moved sticks help complete the pyramid.
+          </p>
+        </div>
+      </section>
+
+      <section class="playground">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Second Puzzle</p>
+            <h2>Remove 4 matchsticks to leave only 3 triangles</h2>
+          </div>
+          <p id="remove-status-text" class="status-text">
+            Click the 4 glowing sticks to remove them.
+          </p>
+        </div>
+
+        <div class="two-up">
+          <div class="hero-card">
+            <div class="card-header">
+              <span>Original figure</span>
+              <span class="tag">13 matchsticks</span>
+            </div>
+            <svg
+              id="remove-original-figure"
+              class="match-scene"
+              viewBox="0 0 360 250"
+              aria-label="Original remove 4 matchsticks puzzle figure"
+            ></svg>
+          </div>
+
+          <div class="hero-card">
+            <div class="card-header">
+              <span>Interactive board</span>
+              <span class="tag">Remove 4</span>
+            </div>
+            <svg
+              id="remove-board"
+              class="match-scene board"
+              viewBox="0 0 520 320"
+              aria-label="Interactive remove 4 matchsticks puzzle board"
+            ></svg>
+          </div>
+        </div>
+
+        <p class="tap-hint">
+          Click the glowing sticks to remove them. When 4 are gone, only 3
+          triangles should remain.
+        </p>
+
+        <div class="controls">
+          <button id="remove-reset-btn" type="button">Reset</button>
+          <button id="remove-answer-btn" type="button" class="secondary">
+            Show answer
+          </button>
+        </div>
+
+        <div id="remove-solution-note" class="solution-note" hidden>
+          <h3>Answer: 3 triangles left</h3>
+          <p>
+            Remove the 4 highlighted sticks. The faded lines disappear, and the
+            remaining figure clearly leaves only 3 triangles.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
